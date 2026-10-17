@@ -1,0 +1,833 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="穿着记录" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <link rel="icon" href="data:," />
+    <title>穿着记录</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f4f1ec;
+        --surface: #fffdf9;
+        --surface-2: #ece7de;
+        --ink: #1d1a16;
+        --ink-soft: #5c554b;
+        --ink-faint: #8a8175;
+        --line: #ddd5c8;
+        --accent: #9c3d1e;
+        --accent-ink: #ffffff;
+        --accent-soft: #f6e3da;
+        --good: #2e6b4f;
+        --danger: #b3261e;
+        --danger-soft: #f9e3e1;
+        --chip-bg: #ece7de;
+        --shadow: 0 1px 2px rgba(29, 26, 22, 0.06), 0 4px 14px rgba(29, 26, 22, 0.05);
+        --radius: 14px;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #16130f;
+          --surface: #221e19;
+          --surface-2: #2c2721;
+          --ink: #f0eadf;
+          --ink-soft: #b8ae9e;
+          --ink-faint: #8a8175;
+          --line: #3a342c;
+          --accent: #e0784f;
+          --accent-ink: #1d130c;
+          --accent-soft: #3d2718;
+          --good: #7cc49e;
+          --danger: #f0837c;
+          --danger-soft: #3d1f1d;
+          --chip-bg: #2c2721;
+          --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 4px 14px rgba(0, 0, 0, 0.3);
+        }
+      }
+      * { box-sizing: border-box; }
+      html { -webkit-text-size-adjust: 100%; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB",
+          "Microsoft YaHei", "Noto Sans CJK SC", "Segoe UI", sans-serif;
+        font-size: 16px;
+        line-height: 1.5;
+      }
+      button, input, select { font: inherit; color: inherit; }
+      button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+      .wrap { max-width: 640px; margin: 0 auto; padding: 14px 14px 110px; }
+
+      /* ---------- 顶部汇总 ---------- */
+      .summary {
+        display: flex; gap: 10px; margin-bottom: 14px;
+      }
+      .stat {
+        flex: 1; background: var(--surface); border: 1px solid var(--line);
+        border-radius: var(--radius); padding: 10px 14px; box-shadow: var(--shadow);
+      }
+      .stat b { display: block; font-size: 24px; line-height: 1.15; font-weight: 700; }
+      .stat span { font-size: 13px; color: var(--ink-soft); }
+
+      /* ---------- 数据备份 ---------- */
+      .backup-bar { margin-bottom: 14px; }
+      .backup-btns { display: flex; gap: 10px; }
+      .backup-btn {
+        flex: 1; min-height: 50px; border-radius: var(--radius);
+        border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+        font-size: 16px; font-weight: 650; box-shadow: var(--shadow);
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+      }
+      .backup-btn:active { background: var(--surface-2); }
+      .backup-btn svg { color: var(--accent); flex: none; }
+      .backup-hint { font-size: 12.5px; color: var(--ink-faint); margin: 8px 2px 0; }
+
+      /* ---------- 搜索与排序 ---------- */
+      .controls { position: sticky; top: 0; z-index: 20; background: var(--bg); padding: 4px 0 10px; }
+      .search-row { display: flex; gap: 8px; }
+      .search-box {
+        flex: 1; display: flex; align-items: center; gap: 8px;
+        background: var(--surface); border: 1px solid var(--line);
+        border-radius: 12px; padding: 0 14px; min-height: 50px;
+      }
+      .search-box svg { flex: none; color: var(--ink-faint); }
+      .search-box input {
+        flex: 1; border: 0; outline: 0; background: transparent;
+        font-size: 17px; min-width: 0; padding: 12px 0;
+      }
+      .search-box input::placeholder { color: var(--ink-faint); }
+      .search-clear {
+        border: 0; background: var(--surface-2); color: var(--ink-soft);
+        width: 28px; height: 28px; border-radius: 50%; font-size: 15px; line-height: 1;
+        display: none; align-items: center; justify-content: center; flex: none;
+      }
+      .search-clear.show { display: flex; }
+      .sort-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+      .sort-row label { font-size: 14px; color: var(--ink-soft); flex: none; }
+      .sort-row select {
+        flex: 1; min-height: 46px; border: 1px solid var(--line); border-radius: 12px;
+        background: var(--surface); padding: 0 12px; font-size: 16px; outline: 0;
+      }
+
+      /* ---------- 分类 chips ---------- */
+      .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+      .chip {
+        border: 1px solid var(--line); background: var(--surface); color: var(--ink-soft);
+        border-radius: 999px; padding: 9px 14px; font-size: 15px; min-height: 42px;
+      }
+      .chip .n { color: var(--ink-faint); font-size: 13px; margin-left: 3px; }
+      .chip.active { background: var(--ink); color: var(--bg); border-color: var(--ink); font-weight: 600; }
+      .chip.active .n { color: inherit; opacity: 0.7; }
+
+      /* ---------- 列表 ---------- */
+      .result-line { font-size: 13px; color: var(--ink-faint); margin: 14px 2px 8px; }
+      .list { display: flex; flex-direction: column; gap: 10px; }
+      .card {
+        background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+        box-shadow: var(--shadow); padding: 14px 14px 12px; text-align: left; width: 100%;
+      }
+      .card-main { display: block; width: 100%; background: none; border: 0; padding: 0; text-align: left; }
+      .card-main:active .item-name { color: var(--accent); }
+      .item-top { display: flex; align-items: flex-start; gap: 10px; }
+      .item-name { font-size: 18px; font-weight: 650; line-height: 1.35; flex: 1; overflow-wrap: anywhere; }
+      .cat-tag {
+        flex: none; font-size: 12.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px;
+        background: var(--accent-soft); color: var(--accent); margin-top: 2px; white-space: nowrap;
+      }
+      .meta {
+        display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 7px;
+        font-size: 14px; color: var(--ink-soft);
+      }
+      .meta b { color: var(--ink); font-weight: 650; }
+      .wear-line { display: flex; align-items: baseline; gap: 12px; margin-top: 9px; flex-wrap: wrap; }
+      .wear-count { font-size: 15px; color: var(--ink-soft); }
+      .wear-count b { font-size: 26px; color: var(--ink); font-weight: 750; line-height: 1; }
+      .last-worn { font-size: 14px; color: var(--ink-soft); }
+      .last-worn.never { color: var(--ink-faint); }
+      .avg-cost { margin-left: auto; font-size: 14px; color: var(--good); font-weight: 600; white-space: nowrap; }
+      .card-foot {
+        display: flex; gap: 8px; margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--line);
+      }
+      .wear-btn {
+        flex: 1; min-height: 48px; border: 0; border-radius: 10px;
+        background: var(--accent); color: var(--accent-ink);
+        font-size: 16.5px; font-weight: 700;
+      }
+      .wear-btn:active { filter: brightness(1.12); }
+      .mini-btn {
+        min-height: 48px; padding: 0 16px; border-radius: 10px; font-size: 15px;
+        border: 1px solid var(--line); background: var(--surface); color: var(--ink-soft);
+      }
+      .mini-btn.danger { color: var(--danger); }
+      .empty {
+        text-align: center; color: var(--ink-faint); padding: 48px 16px; font-size: 16px;
+        background: var(--surface); border: 1px dashed var(--line); border-radius: var(--radius);
+      }
+
+      /* ---------- 新增按钮 ---------- */
+      .add-bar {
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+        padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+        background: color-mix(in srgb, var(--bg) 88%, transparent);
+        backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+        border-top: 1px solid var(--line);
+      }
+      .add-bar-inner { max-width: 640px; margin: 0 auto; }
+      .add-btn {
+        width: 100%; min-height: 54px; border: 0; border-radius: 14px;
+        background: var(--ink); color: var(--bg); font-size: 17.5px; font-weight: 700;
+      }
+
+      /* ---------- 弹层 ---------- */
+      .overlay {
+        position: fixed; inset: 0; z-index: 50; display: none;
+        background: rgba(12, 10, 8, 0.52); padding: 18px;
+        align-items: flex-end; justify-content: center;
+      }
+      .overlay.open { display: flex; }
+      .sheet {
+        background: var(--surface); border-radius: 18px; width: 100%; max-width: 560px;
+        padding: 22px 20px calc(18px + env(safe-area-inset-bottom));
+        max-height: 88vh; overflow-y: auto;
+        animation: rise 0.18s ease-out;
+      }
+      @media (min-width: 560px) { .overlay { align-items: center; } }
+      @keyframes rise { from { transform: translateY(14px); opacity: 0.4; } to { transform: none; opacity: 1; } }
+      @media (prefers-reduced-motion: reduce) { .sheet { animation: none; } }
+      .sheet h2 { margin: 0 0 6px; font-size: 20px; line-height: 1.35; overflow-wrap: anywhere; }
+      .sheet p { margin: 0 0 18px; color: var(--ink-soft); font-size: 15px; }
+      .sheet-actions { display: flex; gap: 10px; }
+      .btn {
+        flex: 1; min-height: 52px; border-radius: 12px; font-size: 16.5px; font-weight: 650;
+        border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+      }
+      .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+      .btn.danger-solid { background: var(--danger); border-color: var(--danger); color: #fff; }
+      @media (prefers-color-scheme: dark) { .btn.danger-solid { color: #1d0f0e; } }
+
+      .field { margin-bottom: 14px; }
+      .field label { display: block; font-size: 14px; color: var(--ink-soft); margin-bottom: 6px; font-weight: 600; }
+      .field input, .field select {
+        width: 100%; min-height: 50px; border: 1px solid var(--line); border-radius: 12px;
+        background: var(--bg); padding: 0 13px; font-size: 16.5px; outline: 0;
+      }
+      .field input:focus, .field select:focus { border-color: var(--accent); }
+      .field .hint { font-size: 12.5px; color: var(--ink-faint); margin-top: 5px; }
+      .form-err { display: none; color: var(--danger); font-size: 14px; margin: 0 0 12px; }
+      .form-err.show { display: block; }
+
+      /* ---------- Toast ---------- */
+      .toast {
+        position: fixed; left: 50%; transform: translateX(-50%) translateY(20px);
+        bottom: calc(86px + env(safe-area-inset-bottom)); z-index: 60;
+        background: var(--ink); color: var(--bg); border-radius: 12px;
+        padding: 12px 16px; font-size: 15.5px; display: none; align-items: center; gap: 14px;
+        max-width: calc(100vw - 28px); box-shadow: 0 8px 24px rgba(0,0,0,0.28);
+      }
+      .toast.show { display: flex; }
+      .toast button {
+        border: 0; background: none; color: var(--accent); font-weight: 700; font-size: 15.5px;
+        padding: 4px 2px; flex: none;
+      }
+      @media (prefers-color-scheme: dark) { .toast button { color: #f0936c; } }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="summary" aria-label="汇总">
+        <div class="stat"><b id="statTotal">0</b><span>件单品</span></div>
+        <div class="stat"><b id="statWears">0</b><span>累计穿着次数</span></div>
+        <div class="stat"><b id="statNever">0</b><span>还没穿过</span></div>
+      </div>
+
+      <div class="backup-bar">
+        <div class="backup-btns">
+          <button class="backup-btn" id="exportBtn">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v11"/><path d="m7 10 5 5 5-5"/><path d="M4 19h16"/></svg>
+            导出备份
+          </button>
+          <button class="backup-btn" id="importBtn">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 14V3"/><path d="m7 7 5-5 5 5"/><path d="M4 19h16"/></svg>
+            导入备份
+          </button>
+        </div>
+        <p class="backup-hint">备份会把全部单品和穿着记录存成一个 JSON 文件，可存到手机或云盘；换手机或清数据后，用「导入备份」选这个文件即可恢复。</p>
+        <input type="file" id="importFile" accept="application/json,.json" hidden />
+      </div>
+
+      <div class="controls">
+        <div class="search-row">
+          <div class="search-box">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg>
+            <input id="searchInput" type="search" placeholder="搜索名称…" autocomplete="off" />
+            <button class="search-clear" id="searchClear" aria-label="清空搜索">✕</button>
+          </div>
+        </div>
+        <div class="sort-row">
+          <label for="sortSelect">排序</label>
+          <select id="sortSelect">
+            <option value="wearsAsc">穿着次数：少 → 多</option>
+            <option value="wearsDesc">穿着次数：多 → 少</option>
+            <option value="lastAsc">上次穿着：从远到近</option>
+            <option value="avgDesc">平均成本：高 → 低</option>
+          </select>
+        </div>
+        <div class="chips" id="chips" role="group" aria-label="分类筛选"></div>
+      </div>
+
+      <p class="result-line" id="resultLine"></p>
+      <div class="list" id="list"></div>
+    </div>
+
+    <div class="add-bar">
+      <div class="add-bar-inner">
+        <button class="add-btn" id="addBtn">＋ 新增单品</button>
+      </div>
+    </div>
+
+    <!-- 穿着确认 -->
+    <div class="overlay" id="wearOverlay" role="dialog" aria-modal="true">
+      <div class="sheet">
+        <h2 id="wearTitle"></h2>
+        <p id="wearDesc"></p>
+        <div class="sheet-actions">
+          <button class="btn" id="wearCancel">取消</button>
+          <button class="btn primary" id="wearConfirm">确认，今天穿了</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 删除确认 -->
+    <div class="overlay" id="delOverlay" role="dialog" aria-modal="true">
+      <div class="sheet">
+        <h2 id="delTitle"></h2>
+        <p>删除后无法恢复，这件单品的穿着记录会一起删掉。</p>
+        <div class="sheet-actions">
+          <button class="btn" id="delCancel">取消</button>
+          <button class="btn danger-solid" id="delConfirm">删除</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 导入备份确认 -->
+    <div class="overlay" id="importOverlay" role="dialog" aria-modal="true">
+      <div class="sheet">
+        <h2>导入备份？</h2>
+        <p id="importDesc"></p>
+        <div class="sheet-actions">
+          <button class="btn" id="importCancel">取消</button>
+          <button class="btn danger-solid" id="importConfirm">覆盖并导入</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 新增 / 编辑 -->
+    <div class="overlay" id="formOverlay" role="dialog" aria-modal="true">
+      <div class="sheet">
+        <h2 id="formTitle">新增单品</h2>
+        <p class="form-err" id="formErr"></p>
+        <form id="itemForm" novalidate>
+          <div class="field">
+            <label for="fName">名称 *</label>
+            <input id="fName" type="text" placeholder="如：RRL 靛蓝 牛津衬衫 M" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="fCat">分类</label>
+            <select id="fCat"></select>
+          </div>
+          <div class="field">
+            <label for="fPrice">买入价格（美元，可空）</label>
+            <input id="fPrice" type="number" inputmode="decimal" min="0" step="0.01" placeholder="如 295" />
+          </div>
+          <div class="field">
+            <label for="fDate">买入时间（可空）</label>
+            <input id="fDate" type="text" placeholder="如 2026-09-29 或 2024" autocomplete="off" />
+            <div class="hint">可以只写年份，也可以写完整日期。</div>
+          </div>
+          <div class="sheet-actions">
+            <button type="button" class="btn" id="formCancel">取消</button>
+            <button type="submit" class="btn primary" id="formSave">保存</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"><span id="toastText"></span><button id="toastUndo">撤销</button></div>
+
+    <script>
+      "use strict";
+
+      var CATEGORIES = ["外套", "毛衣", "长袖上衣", "短袖上衣", "衬衫", "长裤", "短裤", "卫衣/连帽衫", "鞋"];
+      var LS_KEY = "wearlog.v1";
+
+      // 初始数据：[名称, 分类, 价格(美元, null=未知), 购买日期]
+      var SEED = [["7 For All Mankind 浅蓝色 牛仔夹克","外套",null,"2013"],["Alexander Wang 驼色 牛仔夹克带帽 XS","外套",null,"2015"],["Alexander Wang 深蓝色 薄夹克 Size 44","外套",null,"2015"],["T by Alexander Wang 黑色 薄外套","外套",null,"2017"],["Arc'teryx 墨绿色 Zeta SL 冲锋衣 S","外套",168.19,"2021-11-25"],["Arc'teryx 蓝色 Atom 棉服 S","外套",182.0,"2022"],["TNF 灰色 羽绒外套","外套",null,"2022"],["Patagonia 蓝色 Synchilla 套头抓绒","外套",null,"2022"],["NEEDLES 黑色 蝴蝶刺绣衬衫外套 M","外套",15.0,"2022-09-08"],["and wander 黑色 软壳 S","外套",294.0,"2023-01-21"],["Arc'teryx 姜黄色 Gamma MX 软壳 M","外套",262.5,"2023-07-06"],["Arc'teryx 黑色 Atom 棉服 S","外套",182.0,"2023-09-19"],["Patagonia 深蓝色 羽绒背心 S","外套",null,"2024"],["nanamica 深蓝色 巡洋舰外套 S","外套",373.5,"2026-01-17"],["Arc'teryx 黑色 Macai 羽绒外套 S","外套",549.83,"2026-05-12"],["KENZO 墨绿色 毛衣 L","毛衣",null,"2013"],["KENZO 墨绿色 开衫","毛衣",null,"2013"],["KENZO 白色 拉链毛衣","毛衣",null,"2014"],["Burberry 棕色 士兵毛衣","毛衣",null,"2014"],["Alexander McQueen 黑色 羊绒毛衣 L","毛衣",null,"2015"],["DSquared2 黑色 毛衣 L","毛衣",null,"2015"],["Boss 紫色 毛衣 L","毛衣",null,"2016"],["APC 黑色 高领 厚毛衣","毛衣",null,"2018"],["Oliver Spencer 深蓝色 厚毛衣 M","毛衣",15.0,"2022-09-08"],["Y-3 白色 长袖","长袖上衣",null,"2011年"],["Acne Studios 黑色 长袖 M","长袖上衣",124.0,"2021-04-07"],["Filson 白色 长袖 S","长袖上衣",41.37,"2025-01-31"],["Rag & Bone 灰色 长袖 S","长袖上衣",64.97,"2026-07-07"],["Smartwool 蓝黑拼色 Merino Wool 长袖 S","长袖上衣",44.04,"2024-04-12"],["Patagonia 墨绿色 Capilene 长袖 S","长袖上衣",53.99,"2025-01-30"],["REI 姜黄色 Merino Wool 长袖 S","长袖上衣",19.83,"2026-05-12"],["Icebreaker 黑色 Merino Wool 长袖 S","长袖上衣",47.83,"2026-06-02"],["Smartwool 黑色 Merino Wool 长袖 S","长袖上衣",49.83,"2026-05-12"],["Nike 白色 Rash Guard（防晒衣）S","长袖上衣",null,"2023"],["Visvim 白色 短袖","短袖上衣",null,"2014"],["Adidas Messi 球衣 短袖","短袖上衣",60.0,"2026"],["Nike 黑色 短袖","短袖上衣",null,"2015"],["Burberry 黑色 Polo 衫","短袖上衣",null,"2016"],["Y-3 黑色 短袖 S","短袖上衣",72.0,"2019-06-06"],["Y-3 黄色 短袖 S","短袖上衣",null,"2019"],["Patagonia 白色 短袖 S","短袖上衣",null,"2022"],["Patagonia 深蓝色 短袖 S","短袖上衣",20.99,"2022-02-23"],["Xander Zhou 白色 短袖","短袖上衣",59.0,"2022-08-23"],["UNDERCOVER 深蓝色 短袖 S","短袖上衣",47.0,"2022-08-23"],["AMI Paris 黑色 短袖","短袖上衣",81.0,"2022-08-23"],["Lululemon 墨绿色 短袖","短袖上衣",null,"2023"],["Patagonia 深蓝色 短袖 S","短袖上衣",null,"2024"],["Warehouse 灰色 短袖","短袖上衣",50.0,"2026-05-29"],["Rag & Bone 浅黄色 衬衫","衬衫",null,"2017"],["Rag & Bone 浅红浅黄 牛津衬衫","衬衫",null,"2017"],["Ralph Lauren 浅蓝色 牛津衬衫","衬衫",null,"2018"],["uniform experiment 白色 牛津衬衫 Size 4","衬衫",93.0,"2022-08-23"],["Filson Alaskan Guide 衬衫 XS","衬衫",47.98,"2025-01-31"],["Folk 深蓝色 灯芯绒衬衫 M","衬衫",100.5,"2026-01-17"],["RRL 靛蓝 牛津衬衫 M","衬衫",295.0,"2026-09-29"],["Arc'teryx 深蓝色 Gamma 裤子","长裤",113.4,"2021-11-25"],["J.Brand 浅蓝色 牛仔裤 31x32","长裤",null,"2022"],["Rag & Bone 深蓝色 Fit 2 Classic Chino 30x32","长裤",44.99,"2022-11-02"],["Patagonia 深蓝色 Traveler 长裤","长裤",76.99,"2023-01-18"],["Arc'teryx 黑色 Gamma 裤子","长裤",117.0,"2023-07-05"],["Lululemon 深蓝色 ABC 长裤","长裤",null,"2023"],["SOPHNET. 深蓝色 羊毛长裤","长裤",113.0,"2023-07-24"],["Goldwin 蓝色relaxed长裤","长裤",140.0,"2025-02-12"],["OrSlow 105 深蓝 原色牛仔裤","长裤",186.3,"2026-10-12"],["Uniqlo U 棕色长裤","长裤",49.0,"2024"],["Lululemon 黑色 ABC 长裤","长裤",null,"2022"],["Patagonia 深蓝色 Traveler 长裤","长裤",null,"2021"],["Lululemon 黑色长裤","长裤",49.0,"2023"],["Nike 黑色 运动短裤","短裤",null,"2015"],["Patagonia 深蓝色 运动短裤","短裤",38.98,"2023-03-22"],["Patagonia 蓝色 Baggies 游泳短裤","短裤",31.99,"2025-01-30"],["AG 鼠尾草绿 短裤","短裤",20.99,"2025-09-03"],["Hurley 灰色 短裤","短裤",8.37,"2025-09-03"],["Nike 深蓝色 游泳短裤","短裤",12.17,"2026"],["Patagonia 深蓝色 Baggies 游泳短裤","短裤",44.99,"2022-08-16"],["CK 蓝色 游泳短裤","短裤",null,""],["Uniqlo 深蓝色 短裤","短裤",null,"2019"],["Carhartt 灰色 Hoodie","卫衣/连帽衫",null,"2013"],["Isabel Marant 灰色 卫衣","卫衣/连帽衫",null,"2019"],["Patagonia 米黄拼色 Sweatshirt","卫衣/连帽衫",null,"2023"],["Puma 黑色 Hoodie","卫衣/连帽衫",null,"2024"],["Anti Social Social Club 黑色 Hoodie","卫衣/连帽衫",null,"2018"],["麂皮流苏乐福鞋","鞋",null,"2014"],["Tod's Loafer","鞋",null,"2014"],["Nike Jordan Future","鞋",null,"2015"],["ASICS Gel-Lyte III","鞋",null,"2015"],["Suicoke 凉鞋","鞋",138.04,"2017-05-28"],["Common Projects 德比鞋","鞋",null,"2017"],["Tod's 豆豆鞋","鞋",null,"2018"],["Yeezy Boost 350 V2","鞋",null,"2019"],["Spalwart 复古跑鞋","鞋",null,"2020"],["Adidas SolarGlide 4 Gore-Tex 跑鞋","鞋",128.0,"2021-11-29"],["Salomon X Ultra 3 Mid GTX","鞋",81.83,"2022-09-13"],["Adidas Terrex Gore-Tex","鞋",74.8,"2024-11-15"],["White's 皮靴","鞋",null,"2025"],["Hoka Clifton","鞋",103.0,"2025-06-30"]];
+
+      var items = [];
+      var activeCategory = "全部";
+      var pendingWearId = null;
+      var pendingDeleteId = null;
+      var editingId = null;
+      var lastAction = null; // {id, prevWears, prevLast}
+      var toastTimer = null;
+
+      function seedItems() {
+        return SEED.map(function (row, i) {
+          return {
+            id: "s" + i,
+            name: row[0],
+            category: row[1],
+            price: row[2],
+            date: row[3] || "",
+            wears: 0,
+            last: null
+          };
+        });
+      }
+
+      function load() {
+        try {
+          var raw = localStorage.getItem(LS_KEY);
+          if (raw) {
+            var data = JSON.parse(raw);
+            if (Array.isArray(data) && data.length) {
+              items = data;
+              return;
+            }
+          }
+        } catch (e) { /* 存储不可用时退回种子数据 */ }
+        items = seedItems();
+        save();
+      }
+
+      function save() {
+        try { localStorage.setItem(LS_KEY, JSON.stringify(items)); } catch (e) { /* 忽略 */ }
+      }
+
+      function todayStr() {
+        var d = new Date();
+        var m = String(d.getMonth() + 1).padStart(2, "0");
+        var day = String(d.getDate()).padStart(2, "0");
+        return d.getFullYear() + "-" + m + "-" + day;
+      }
+
+      function fmtPrice(p) {
+        if (p === null || p === undefined || p === "") return "价格未知";
+        var n = Number(p);
+        if (!isFinite(n)) return "价格未知";
+        return "$" + (Number.isInteger(n) ? String(n) : n.toFixed(2));
+      }
+
+      function avgCost(item) {
+        if (item.price === null || item.price === undefined || item.price === "") return null;
+        if (!item.wears) return null;
+        return Number(item.price) / item.wears;
+      }
+
+      function relDay(last) {
+        if (!last) return null;
+        var today = todayStr();
+        if (last === today) return "今天";
+        var t = new Date(today + "T00:00:00");
+        var l = new Date(last + "T00:00:00");
+        var diff = Math.round((t - l) / 86400000);
+        if (diff === 1) return "昨天";
+        if (diff > 1) return diff + " 天前";
+        return "";
+      }
+
+      function esc(s) {
+        return String(s == null ? "" : s)
+          .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+      }
+
+      function byId(id) {
+        for (var i = 0; i < items.length; i++) if (items[i].id === id) return items[i];
+        return null;
+      }
+
+      /* ---------- 渲染 ---------- */
+      var listEl = document.getElementById("list");
+      var chipsEl = document.getElementById("chips");
+      var searchEl = document.getElementById("searchInput");
+      var searchClearEl = document.getElementById("searchClear");
+      var sortEl = document.getElementById("sortSelect");
+      var resultLineEl = document.getElementById("resultLine");
+
+      function renderChips() {
+        var counts = { "全部": items.length };
+        CATEGORIES.forEach(function (c) { counts[c] = 0; });
+        items.forEach(function (it) { if (counts[it.category] !== undefined) counts[it.category]++; });
+        var cats = ["全部"].concat(CATEGORIES);
+        chipsEl.innerHTML = cats.map(function (c) {
+          return '<button class="chip' + (c === activeCategory ? " active" : "") +
+            '" data-cat="' + esc(c) + '">' + esc(c) + '<span class="n">' + counts[c] + "</span></button>";
+        }).join("");
+      }
+
+      function filtered() {
+        var q = searchEl.value.trim().toLowerCase();
+        var out = items.filter(function (it) {
+          if (activeCategory !== "全部" && it.category !== activeCategory) return false;
+          if (q && it.name.toLowerCase().indexOf(q) === -1) return false;
+          return true;
+        });
+        var mode = sortEl.value;
+        out.sort(function (a, b) {
+          if (mode === "wearsAsc") return a.wears - b.wears;
+          if (mode === "wearsDesc") return b.wears - a.wears;
+          if (mode === "lastAsc") {
+            var ka = a.last || "0000-00-00", kb = b.last || "0000-00-00";
+            return ka < kb ? -1 : ka > kb ? 1 : a.wears - b.wears;
+          }
+          if (mode === "avgDesc") {
+            var ca = avgCost(a), cb = avgCost(b);
+            if (ca === null && cb === null) return a.wears - b.wears;
+            if (ca === null) return 1;
+            if (cb === null) return -1;
+            return cb - ca;
+          }
+          return 0;
+        });
+        return out;
+      }
+
+      function cardHTML(it) {
+        var avg = avgCost(it);
+        var rel = relDay(it.last);
+        var lastHTML = it.last
+          ? '<span class="last-worn">上次穿着：<b>' + esc(it.last) + "</b>" + (rel ? "（" + rel + "）" : "") + "</span>"
+          : '<span class="last-worn never">还没穿过</span>';
+        var metaParts = [];
+        metaParts.push("<span>买入价 <b>" + esc(fmtPrice(it.price)) + "</b></span>");
+        if (it.date) metaParts.push("<span>买入时间 <b>" + esc(it.date) + "</b></span>");
+        var avgHTML = avg !== null
+          ? '<span class="avg-cost">平均成本 $' + avg.toFixed(2) + " / 次</span>"
+          : "";
+        return (
+          '<article class="card">' +
+            '<button class="card-main" data-wear="' + esc(it.id) + '" aria-label="记录穿着：' + esc(it.name) + '">' +
+              '<span class="item-top"><span class="item-name">' + esc(it.name) + '</span>' +
+              '<span class="cat-tag">' + esc(it.category) + "</span></span>" +
+              '<span class="meta">' + metaParts.join("") + "</span>" +
+              '<span class="wear-line"><span class="wear-count">已穿 <b>' + it.wears + '</b> 次</span>' +
+              lastHTML + avgHTML + "</span>" +
+            "</button>" +
+            '<div class="card-foot">' +
+              '<button class="wear-btn" data-wear="' + esc(it.id) + '">今天穿了 ＋1</button>' +
+              '<button class="mini-btn" data-edit="' + esc(it.id) + '">编辑</button>' +
+              '<button class="mini-btn danger" data-del="' + esc(it.id) + '">删除</button>' +
+            "</div>" +
+          "</article>"
+        );
+      }
+
+      function render() {
+        renderChips();
+        var totalWears = items.reduce(function (s, it) { return s + it.wears; }, 0);
+        var never = items.filter(function (it) { return !it.wears; }).length;
+        document.getElementById("statTotal").textContent = items.length;
+        document.getElementById("statWears").textContent = totalWears;
+        document.getElementById("statNever").textContent = never;
+
+        var list = filtered();
+        resultLineEl.textContent = "显示 " + list.length + " / " + items.length + " 件 · 点卡片或红色按钮记录今天穿了它";
+        if (!list.length) {
+          listEl.innerHTML = '<div class="empty">没有符合条件的单品。<br/>换个关键词或分类试试。</div>';
+          return;
+        }
+        listEl.innerHTML = list.map(cardHTML).join("");
+      }
+
+      /* ---------- 弹层通用 ---------- */
+      function openOverlay(id) { document.getElementById(id).classList.add("open"); }
+      function closeOverlay(id) { document.getElementById(id).classList.remove("open"); }
+      ["wearOverlay", "delOverlay", "formOverlay", "importOverlay"].forEach(function (id) {
+        document.getElementById(id).addEventListener("click", function (e) {
+          if (e.target === this) closeOverlay(id);
+        });
+      });
+
+      /* ---------- Toast ---------- */
+      var toastEl = document.getElementById("toast");
+      function showToast(text, undoable) {
+        document.getElementById("toastText").textContent = text;
+        document.getElementById("toastUndo").style.display = undoable ? "" : "none";
+        toastEl.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { toastEl.classList.remove("show"); }, 5000);
+      }
+      document.getElementById("toastUndo").addEventListener("click", function () {
+        if (lastAction) {
+          var it = byId(lastAction.id);
+          if (it) {
+            it.wears = lastAction.prevWears;
+            it.last = lastAction.prevLast;
+            save();
+            render();
+          }
+          lastAction = null;
+        }
+        toastEl.classList.remove("show");
+      });
+
+      /* ---------- 记录穿着 ---------- */
+      function askWear(id) {
+        var it = byId(id);
+        if (!it) return;
+        pendingWearId = id;
+        document.getElementById("wearTitle").textContent = "今天穿了这件？";
+        document.getElementById("wearDesc").textContent =
+          "「" + it.name + "」穿着次数将 +1，上次穿着日期记为今天（" + todayStr() + "）。目前已穿 " + it.wears + " 次。";
+        openOverlay("wearOverlay");
+      }
+      document.getElementById("wearCancel").addEventListener("click", function () { closeOverlay("wearOverlay"); });
+      document.getElementById("wearConfirm").addEventListener("click", function () {
+        var it = byId(pendingWearId);
+        closeOverlay("wearOverlay");
+        if (!it) return;
+        lastAction = { id: it.id, prevWears: it.wears, prevLast: it.last };
+        it.wears += 1;
+        it.last = todayStr();
+        save();
+        render();
+        showToast("已记录：「" + it.name + "」第 " + it.wears + " 次", true);
+      });
+
+      /* ---------- 删除 ---------- */
+      function askDelete(id) {
+        var it = byId(id);
+        if (!it) return;
+        pendingDeleteId = id;
+        document.getElementById("delTitle").textContent = "删除「" + it.name + "」？";
+        openOverlay("delOverlay");
+      }
+      document.getElementById("delCancel").addEventListener("click", function () { closeOverlay("delOverlay"); });
+      document.getElementById("delConfirm").addEventListener("click", function () {
+        var it = byId(pendingDeleteId);
+        closeOverlay("delOverlay");
+        if (!it) return;
+        items = items.filter(function (x) { return x.id !== it.id; });
+        save();
+        render();
+        showToast("已删除「" + it.name + "」", false);
+      });
+
+      /* ---------- 新增 / 编辑 ---------- */
+      var catSelect = document.getElementById("fCat");
+      catSelect.innerHTML = CATEGORIES.map(function (c) {
+        return '<option value="' + esc(c) + '">' + esc(c) + "</option>";
+      }).join("");
+
+      function openForm(item) {
+        editingId = item ? item.id : null;
+        document.getElementById("formTitle").textContent = item ? "编辑单品" : "新增单品";
+        document.getElementById("formErr").classList.remove("show");
+        document.getElementById("fName").value = item ? item.name : "";
+        catSelect.value = item ? item.category : (activeCategory !== "全部" ? activeCategory : "外套");
+        document.getElementById("fPrice").value =
+          item && item.price !== null && item.price !== undefined ? item.price : "";
+        document.getElementById("fDate").value = item ? (item.date || "") : "";
+        openOverlay("formOverlay");
+      }
+      document.getElementById("addBtn").addEventListener("click", function () { openForm(null); });
+      document.getElementById("formCancel").addEventListener("click", function () { closeOverlay("formOverlay"); });
+      document.getElementById("itemForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var name = document.getElementById("fName").value.trim();
+        var errEl = document.getElementById("formErr");
+        if (!name) {
+          errEl.textContent = "名称不能为空。";
+          errEl.classList.add("show");
+          return;
+        }
+        var priceRaw = document.getElementById("fPrice").value.trim();
+        var price = null;
+        if (priceRaw !== "") {
+          price = Number(priceRaw);
+          if (!isFinite(price) || price < 0) {
+            errEl.textContent = "价格请填一个不小于 0 的数字，或留空。";
+            errEl.classList.add("show");
+            return;
+          }
+        }
+        var date = document.getElementById("fDate").value.trim();
+        var cat = catSelect.value;
+        if (editingId) {
+          var it = byId(editingId);
+          if (it) {
+            it.name = name; it.category = cat; it.price = price; it.date = date;
+          }
+          showToast("已更新「" + name + "」", false);
+        } else {
+          items.unshift({
+            id: "u" + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36),
+            name: name, category: cat, price: price, date: date, wears: 0, last: null
+          });
+          showToast("已新增「" + name + "」", false);
+        }
+        save();
+        closeOverlay("formOverlay");
+        render();
+      });
+
+      /* ---------- 数据备份：导出 ---------- */
+      document.getElementById("exportBtn").addEventListener("click", function () {
+        var payload = {
+          app: "穿着记录",
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          items: items.map(function (it) {
+            return {
+              "名称": it.name,
+              "分类": it.category,
+              "价格": it.price === undefined ? null : it.price,
+              "购买日期": it.date || "",
+              "穿着次数": it.wears,
+              "上次穿着日期": it.last || ""
+            };
+          })
+        };
+        var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = "穿着记录备份-" + todayStr() + ".json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+        showToast("已导出 " + items.length + " 件单品的备份", false);
+      });
+
+      /* ---------- 数据备份：导入 ---------- */
+      var pendingImport = null;
+      var importFileEl = document.getElementById("importFile");
+
+      document.getElementById("importBtn").addEventListener("click", function () {
+        importFileEl.value = "";
+        importFileEl.click();
+      });
+      importFileEl.addEventListener("change", function () {
+        var file = importFileEl.files && importFileEl.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          var parsed = null;
+          try { parsed = normalizeImport(JSON.parse(String(reader.result))); } catch (e) { parsed = null; }
+          if (!parsed) {
+            showToast("这个文件不是有效的备份文件，未导入任何数据", false);
+            return;
+          }
+          pendingImport = parsed;
+          document.getElementById("importDesc").textContent =
+            "备份里有 " + parsed.length + " 件单品。导入后会覆盖当前 " + items.length +
+            " 件单品的全部数据（包括穿着次数和上次穿着日期），确定要导入吗？";
+          openOverlay("importOverlay");
+        };
+        reader.onerror = function () { showToast("读取文件失败，请重试", false); };
+        reader.readAsText(file);
+      });
+
+      function pickField(row, keys) {
+        for (var i = 0; i < keys.length; i++) {
+          if (row[keys[i]] !== undefined && row[keys[i]] !== null) return row[keys[i]];
+        }
+        return undefined;
+      }
+
+      function normalizeImport(data) {
+        var rows = null;
+        if (Array.isArray(data)) rows = data;
+        else if (data && Array.isArray(data.items)) rows = data.items;
+        else if (data && Array.isArray(data["单品"])) rows = data["单品"];
+        if (!rows || !rows.length) return null;
+        var out = [];
+        for (var i = 0; i < rows.length; i++) {
+          var row = rows[i];
+          if (!row || typeof row !== "object") return null;
+          var name = pickField(row, ["名称", "name"]);
+          if (typeof name !== "string" || !name.trim()) return null;
+          var cat = pickField(row, ["分类", "category"]);
+          if (CATEGORIES.indexOf(cat) === -1) cat = "外套";
+          var price = pickField(row, ["价格", "price"]);
+          if (price === "" || price === undefined) price = null;
+          else {
+            price = Number(price);
+            if (!isFinite(price) || price < 0) price = null;
+          }
+          var date = pickField(row, ["购买日期", "date"]);
+          date = typeof date === "string" ? date : (date == null ? "" : String(date));
+          var wears = Number(pickField(row, ["穿着次数", "wears"]));
+          if (!isFinite(wears) || wears < 0) wears = 0;
+          wears = Math.floor(wears);
+          var last = pickField(row, ["上次穿着日期", "last"]);
+          last = (typeof last === "string" && /^\d{4}-\d{2}-\d{2}$/.test(last)) ? last : null;
+          if (!wears) last = null;
+          out.push({
+            id: "u" + Date.now().toString(36) + i.toString(36) + Math.floor(Math.random() * 1e6).toString(36),
+            name: name.trim(), category: cat, price: price, date: date, wears: wears, last: last
+          });
+        }
+        return out;
+      }
+
+      document.getElementById("importCancel").addEventListener("click", function () {
+        pendingImport = null;
+        closeOverlay("importOverlay");
+      });
+      document.getElementById("importConfirm").addEventListener("click", function () {
+        closeOverlay("importOverlay");
+        if (!pendingImport) return;
+        items = pendingImport;
+        pendingImport = null;
+        activeCategory = "全部";
+        lastAction = null;
+        save();
+        render();
+        showToast("已导入备份，共 " + items.length + " 件单品", false);
+      });
+
+      /* ---------- 列表点击（事件委托） ---------- */
+      listEl.addEventListener("click", function (e) {
+        var wearBtn = e.target.closest("[data-wear]");
+        var editBtn = e.target.closest("[data-edit]");
+        var delBtn = e.target.closest("[data-del]");
+        if (editBtn) { openForm(byId(editBtn.getAttribute("data-edit"))); return; }
+        if (delBtn) { askDelete(delBtn.getAttribute("data-del")); return; }
+        if (wearBtn) { askWear(wearBtn.getAttribute("data-wear")); return; }
+      });
+
+      chipsEl.addEventListener("click", function (e) {
+        var chip = e.target.closest("[data-cat]");
+        if (!chip) return;
+        activeCategory = chip.getAttribute("data-cat");
+        render();
+      });
+
+      searchEl.addEventListener("input", function () {
+        searchClearEl.classList.toggle("show", searchEl.value.length > 0);
+        render();
+      });
+      searchClearEl.addEventListener("click", function () {
+        searchEl.value = "";
+        searchClearEl.classList.remove("show");
+        render();
+        searchEl.focus();
+      });
+      sortEl.addEventListener("change", render);
+
+      load();
+      render();
+    </script>
+  </body>
+</html>
